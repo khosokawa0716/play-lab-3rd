@@ -13,9 +13,11 @@ export default function Home() {
             <p className="text-gray-600 mb-4">
               ランダムに変化する図柄を予測して当てる、直感的なタイミングゲーム
             </p>
-            <button className="btn-primary w-full">
-              ゲームを始める
-            </button>
+            <a href="/roulette" className="block">
+              <button className="btn-primary w-full">
+                ゲームを始める
+              </button>
+            </a>
           </div>
           
           <div className="card">
