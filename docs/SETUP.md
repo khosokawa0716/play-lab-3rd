@@ -38,31 +38,50 @@ npm run dev
 ```bash
 cd backend
 pip install -r requirements.txt
+# Macの場合
+pip3 install -r requirements.txt
+# pymysqlも個別にインストール
+pip3 install pymysql==1.1.0
 cp .env.example .env
 ```
 
 `.env` を編集：
 ```env
-DATABASE_URL=mysql+pymysql://username:password@localhost:3306/playlab
+DATABASE_URL=mysql+pymysql://root:@localhost:3306/playlab
 SECRET_KEY=your-super-secret-jwt-key-here
 ```
 
 ### 4. データベース セットアップ
 
-MySQLにデータベースを作成：
+MySQLをインストール（Homebrew使用）：
+```bash
+brew install mysql
+```
+
+MySQLを起動・停止：
+```bash
+mysql.server start
+mysql.server stop
+```
+
+MySQLにログインしてデータベースを作成：
+```bash
+mysql -u root -p
+```
 ```sql
 CREATE DATABASE playlab CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+exit;
 ```
 
 マイグレーション実行：
 ```bash
-alembic revision --autogenerate -m "Initial migration"
-alembic upgrade head
+python3 -m alembic revision --autogenerate -m "Initial migration"
+python3 -m alembic upgrade head
 ```
 
 バックエンド起動：
 ```bash
-uvicorn main:app --reload
+python3 -m uvicorn main:app --reload
 ```
 
 ## 🚀 デプロイガイド
