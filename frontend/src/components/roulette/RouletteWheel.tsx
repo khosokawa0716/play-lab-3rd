@@ -1,24 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { GAME_CONFIG } from '@/constants/gameConfig'
 
 interface RouletteWheelProps {
   isSpinning: boolean
-  onResult: (result: number, isWin: boolean) => void
+  onResult: (result: number) => void
   onSpin: () => void
   totalBetAmount: number
 }
-
-const WHEEL_SECTIONS = [
-  { id: 1, color: '#ef4444', emoji: '🍎', label: 'りんご' },
-  { id: 2, color: '#f59e0b', emoji: '🍌', label: 'バナナ' },
-  { id: 3, color: '#10b981', emoji: '🍇', label: 'ぶどう' },
-  { id: 4, color: '#3b82f6', emoji: '🍓', label: 'いちご' },
-  { id: 5, color: '#8b5cf6', emoji: '🍑', label: 'さくらんぼ' },
-  { id: 6, color: '#f97316', emoji: '🥕', label: 'にんじん' },
-  { id: 7, color: '#06b6d4', emoji: '🐟', label: 'さかな' },
-  { id: 8, color: '#84cc16', emoji: '⭐', label: 'スター' }
-]
 
 export function RouletteWheel({ isSpinning, onResult, onSpin, totalBetAmount }: RouletteWheelProps) {
   const [rotation, setRotation] = useState(0)
@@ -30,29 +20,28 @@ export function RouletteWheel({ isSpinning, onResult, onSpin, totalBetAmount }: 
       setShowWinAnimation(false)
       setSelectedSection(null)
       
-      const spinAmount = 360 * 5 + Math.random() * 360
+      const spinAmount = 360 * GAME_CONFIG.SPIN_ROTATIONS + Math.random() * 360
       const finalRotation = rotation + spinAmount
       setRotation(finalRotation)
 
       setTimeout(() => {
         const normalizedRotation = finalRotation % 360
-        const sectionAngle = 360 / WHEEL_SECTIONS.length
-        const selectedIndex = Math.floor((360 - normalizedRotation + sectionAngle / 2) / sectionAngle) % WHEEL_SECTIONS.length
-        const selected = WHEEL_SECTIONS[selectedIndex].id
+        const sectionAngle = 360 / GAME_CONFIG.WHEEL_SECTIONS.length
+        const selectedIndex = Math.floor((360 - normalizedRotation + sectionAngle / 2) / sectionAngle) % GAME_CONFIG.WHEEL_SECTIONS.length
+        const selected = GAME_CONFIG.WHEEL_SECTIONS[selectedIndex].id
         
         setSelectedSection(selected)
         
         setTimeout(() => {
           setShowWinAnimation(true)
-        }, 1000)
+        }, GAME_CONFIG.ANIMATION_DELAY)
         
-        const isWin = Math.random() > 0.6
-        onResult(selected, isWin)
-      }, 3500)
+        onResult(selected)
+      }, GAME_CONFIG.SPIN_DURATION)
     }
   }, [isSpinning, rotation, onResult])
 
-  const sectionAngle = 360 / WHEEL_SECTIONS.length
+  const sectionAngle = 360 / GAME_CONFIG.WHEEL_SECTIONS.length
 
   return (
     <div className="relative">
@@ -69,7 +58,7 @@ export function RouletteWheel({ isSpinning, onResult, onSpin, totalBetAmount }: 
             transformOrigin: '160px 160px'
           }}
         >
-          {WHEEL_SECTIONS.map((section, index) => {
+          {GAME_CONFIG.WHEEL_SECTIONS.map((section, index) => {
             const startAngle = (index * sectionAngle - 90) * (Math.PI / 180)
             const endAngle = ((index + 1) * sectionAngle - 90) * (Math.PI / 180)
             const midAngle = (startAngle + endAngle) / 2

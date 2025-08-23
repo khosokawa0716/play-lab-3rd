@@ -2,25 +2,20 @@
 
 import { useState } from 'react'
 
-interface Section {
-  id: number
-  color: string
-  emoji: string
-  label: string
-}
+import { GAME_CONFIG, WheelSection } from '@/constants/gameConfig'
 
 interface BettingPanelProps {
-  sections: Section[]
+  sections: readonly WheelSection[]
   bets: { [key: number]: number }
   onBetChange: (sectionId: number, amount: number) => void
   totalScore: number
   isDisabled: boolean
 }
 
-const BET_AMOUNTS = [10, 50, 100, 500]
+const BET_AMOUNTS = GAME_CONFIG.BET_AMOUNTS
 
 export function BettingPanel({ sections, bets, onBetChange, totalScore, isDisabled }: BettingPanelProps) {
-  const [selectedBetAmount, setSelectedBetAmount] = useState(50)
+  const [selectedBetAmount, setSelectedBetAmount] = useState(GAME_CONFIG.BET_AMOUNTS[1])
 
   const totalBetAmount = Object.values(bets).reduce((sum, bet) => sum + bet, 0)
 
@@ -127,7 +122,7 @@ export function BettingPanel({ sections, bets, onBetChange, totalScore, isDisabl
 
       <div className="mt-3 p-2 bg-blue-50 rounded-lg">
         <p className="text-xs text-gray-600">
-          💡 図柄をクリックしてベット。的中すると5倍！
+          💡 図柄をクリックしてベット。的中すると{GAME_CONFIG.PAYOUT_MULTIPLIER}倍！
         </p>
       </div>
     </div>

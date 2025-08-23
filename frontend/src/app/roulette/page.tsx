@@ -4,29 +4,19 @@ import { useState } from 'react'
 import { RouletteWheel } from '@/components/roulette/RouletteWheel'
 import { GameScore } from '@/components/roulette/GameScore'
 import { BettingPanel } from '@/components/roulette/BettingPanel'
-
-const WHEEL_SECTIONS = [
-  { id: 1, color: '#ef4444', emoji: '🍎', label: 'りんご' },
-  { id: 2, color: '#f59e0b', emoji: '🍌', label: 'バナナ' },
-  { id: 3, color: '#10b981', emoji: '🍇', label: 'ぶどう' },
-  { id: 4, color: '#3b82f6', emoji: '🍓', label: 'いちご' },
-  { id: 5, color: '#8b5cf6', emoji: '🍑', label: 'さくらんぼ' },
-  { id: 6, color: '#f97316', emoji: '🥕', label: 'にんじん' },
-  { id: 7, color: '#06b6d4', emoji: '🐟', label: 'さかな' },
-  { id: 8, color: '#84cc16', emoji: '⭐', label: 'スター' }
-]
+import { GAME_CONFIG } from '@/constants/gameConfig'
 
 type Bets = { [key: number]: number }
 
 export default function RoulettePage() {
-  const [score, setScore] = useState(1000)
+  const [score, setScore] = useState<number>(GAME_CONFIG.INITIAL_SCORE)
   const [isSpinning, setIsSpinning] = useState(false)
   const [lastResult, setLastResult] = useState<number | null>(null)
   const [bets, setBets] = useState<Bets>({})
   const [consecutiveWins, setConsecutiveWins] = useState(0)
   const [lastWinAmount, setLastWinAmount] = useState(0)
 
-  const handleResult = (result: number, isWin: boolean) => {
+  const handleResult = (result: number) => {
     setLastResult(result)
     
     let newScore = score
@@ -37,7 +27,7 @@ export default function RoulettePage() {
     
     let netResult = 0
     if (winAmount > 0) {
-      const payout = winAmount * 5
+      const payout = winAmount * GAME_CONFIG.PAYOUT_MULTIPLIER
       newScore += payout
       netResult = payout - totalBetAmount
     } else {
@@ -100,7 +90,7 @@ export default function RoulettePage() {
 
           <div>
             <BettingPanel
-              sections={WHEEL_SECTIONS}
+              sections={GAME_CONFIG.WHEEL_SECTIONS}
               bets={bets}
               onBetChange={updateBet}
               totalScore={score}
