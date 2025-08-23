@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { GAME_CONFIG } from '@/constants/gameConfig'
 
 interface RouletteWheelProps {
@@ -14,32 +14,64 @@ export function RouletteWheel({ isSpinning, onResult, onSpin, totalBetAmount }: 
   const [rotation, setRotation] = useState(0)
   const [selectedSection, setSelectedSection] = useState<number | null>(null)
   const [showWinAnimation, setShowWinAnimation] = useState(false)
+  const spinIdRef = useRef<number>(0)
+  const hasResultBeenCalled = useRef<boolean>(false)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    if (isSpinning) {
+    // 既存のタイマーをクリア
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    
+    if (isSpinning && !hasResultBeenCalled.current) {
       setShowWinAnimation(false)
       setSelectedSection(null)
+      hasResultBeenCalled.current = true
       
+      const currentSpinId = ++spinIdRef.current
       const spinAmount = 360 * GAME_CONFIG.SPIN_ROTATIONS + Math.random() * 360
-      const finalRotation = rotation + spinAmount
-      setRotation(finalRotation)
-
-      setTimeout(() => {
-        const normalizedRotation = finalRotation % 360
-        const sectionAngle = 360 / GAME_CONFIG.WHEEL_SECTIONS.length
-        const selectedIndex = Math.floor((360 - normalizedRotation + sectionAngle / 2) / sectionAngle) % GAME_CONFIG.WHEEL_SECTIONS.length
-        const selected = GAME_CONFIG.WHEEL_SECTIONS[selectedIndex].id
-        
-        setSelectedSection(selected)
-        
-        setTimeout(() => {
-          setShowWinAnimation(true)
-        }, GAME_CONFIG.ANIMATION_DELAY)
-        
-        onResult(selected)
+      let finalRotation = 0
+      
+      // setRotationを関数型で更新し、finalRotationを取得
+      setRotation(prev => {
+        finalRotation = prev + spinAmount
+        return finalRotation
+      })
+      
+      // タイマーを設定
+      timeoutRef.current = setTimeout(() => {
+        if (currentSpinId === spinIdRef.current) {
+          const normalizedRotation = finalRotation % 360
+          const sectionAngle = 360 / GAME_CONFIG.WHEEL_SECTIONS.length
+          const selectedIndex = Math.floor((360 - normalizedRotation + sectionAngle / 2) / sectionAngle) % GAME_CONFIG.WHEEL_SECTIONS.length
+          const selected = GAME_CONFIG.WHEEL_SECTIONS[selectedIndex].id
+          
+          setSelectedSection(selected)
+          
+          setTimeout(() => {
+            setShowWinAnimation(true)
+          }, GAME_CONFIG.ANIMATION_DELAY)
+          
+          onResult(selected)
+        }
+        timeoutRef.current = null
       }, GAME_CONFIG.SPIN_DURATION)
+      
+    } else if (!isSpinning) {
+      // スピンが終了したらフラグをリセット
+      hasResultBeenCalled.current = false
     }
-  }, [isSpinning, rotation, onResult])
+    
+    // クリーンアップ関数
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+    }
+  }, [isSpinning])
 
   const sectionAngle = 360 / GAME_CONFIG.WHEEL_SECTIONS.length
 

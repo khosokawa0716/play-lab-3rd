@@ -119,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const user: User = JSON.parse(userStr)
       
       // 必要であれば、サーバーでトークンの有効性を確認
+      // TODO: バックエンドに /auth/me エンドポイントを追加後に有効化
       // await authApi.getCurrentUser()
       
       setAuthState({

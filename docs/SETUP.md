@@ -76,6 +76,7 @@ exit;
 マイグレーション実行：
 ```bash
 python3 -m alembic revision --autogenerate -m "Initial migration"
+python3 -m alembic revision --autogenerate -m "Create users and game tables"
 python3 -m alembic upgrade head
 ```
 

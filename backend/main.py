@@ -9,9 +9,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# 開発用に緩いCORS設定
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_HOSTS,
+    allow_origins=["*"],  # 開発時のみ、本番では具体的なドメインを指定
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
