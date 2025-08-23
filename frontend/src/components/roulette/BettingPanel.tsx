@@ -15,7 +15,7 @@ interface BettingPanelProps {
 const BET_AMOUNTS = GAME_CONFIG.BET_AMOUNTS
 
 export function BettingPanel({ sections, bets, onBetChange, totalScore, isDisabled }: BettingPanelProps) {
-  const [selectedBetAmount, setSelectedBetAmount] = useState(GAME_CONFIG.BET_AMOUNTS[1])
+  const [selectedBetAmount, setSelectedBetAmount] = useState<number>(GAME_CONFIG.BET_AMOUNTS[1])
 
   const totalBetAmount = Object.values(bets).reduce((sum, bet) => sum + bet, 0)
 
