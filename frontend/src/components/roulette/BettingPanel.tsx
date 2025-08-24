@@ -1,8 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 import { GAME_CONFIG, WheelSection } from '@/constants/gameConfig'
+
+export interface RouletteBetResult {
+  winningSectionId: number
+  winningAmount: number
+  totalPayout: number
+}
 
 interface BettingPanelProps {
   sections: readonly WheelSection[]
@@ -10,14 +16,40 @@ interface BettingPanelProps {
   onBetChange: (sectionId: number, amount: number) => void
   totalScore: number
   isDisabled: boolean
+  gameResult: RouletteBetResult | null
+  showResult?: boolean
 }
 
 const BET_AMOUNTS = GAME_CONFIG.BET_AMOUNTS
 
-export function BettingPanel({ sections, bets, onBetChange, totalScore, isDisabled }: BettingPanelProps) {
+export function BettingPanel({ sections, bets, onBetChange, totalScore, isDisabled, gameResult, showResult }: BettingPanelProps) {
   const [selectedBetAmount, setSelectedBetAmount] = useState<number>(GAME_CONFIG.BET_AMOUNTS[1])
 
+  useEffect(() => {
+    if (showResult && gameResult) {
+      const timer = setTimeout(() => {
+        sections.forEach(section => {
+          onBetChange(section.id, 0)
+        })
+      }, 5000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [showResult, gameResult, sections, onBetChange])
+
   const totalBetAmount = Object.values(bets).reduce((sum, bet) => sum + bet, 0)
+
+  const getBetStatus = (sectionId: number): 'winning' | 'losing' | 'none' => {
+    if (!showResult || !gameResult) return 'none'
+    const betAmount = bets[sectionId] || 0
+    if (betAmount === 0) return 'none'
+    return sectionId === gameResult.winningSectionId ? 'winning' : 'losing'
+  }
+
+  const getWinningSection = () => {
+    if (!gameResult) return null
+    return sections.find(section => section.id === gameResult.winningSectionId)
+  }
 
   const handleBetClick = (sectionId: number) => {
     if (isDisabled) return
@@ -76,47 +108,101 @@ export function BettingPanel({ sections, bets, onBetChange, totalScore, isDisabl
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
         {sections.map(section => {
           const betAmount = bets[section.id] || 0
+          const betStatus = getBetStatus(section.id)
+          const isWinningSection = showResult && gameResult && section.id === gameResult.winningSectionId
+          
+          let borderClass = 'border-gray-300'
+          let bgClass = 'bg-white'
+          let shadowClass = ''
+          
+          if (isWinningSection) {
+            borderClass = 'border-yellow-400 animate-pulse'
+            bgClass = 'bg-gradient-to-br from-yellow-100 to-yellow-200'
+            shadowClass = 'shadow-xl shadow-yellow-300/50'
+          } else if (betStatus === 'winning') {
+            borderClass = 'border-green-500'
+            bgClass = 'bg-green-50'
+            shadowClass = 'shadow-lg shadow-green-200/50'
+          } else if (betStatus === 'losing') {
+            borderClass = 'border-red-400'
+            bgClass = 'bg-red-50 opacity-70'
+          } else if (betAmount > 0) {
+            borderClass = 'border-blue-400'
+            bgClass = 'bg-blue-50'
+            shadowClass = 'shadow-lg'
+          }
+
           return (
             <button
               key={section.id}
               onClick={() => handleBetClick(section.id)}
               disabled={isDisabled}
-              className={`relative p-3 rounded-xl border-2 transition-all duration-200 ${
-                betAmount > 0
-                  ? 'border-yellow-400 bg-yellow-50 shadow-lg scale-105'
-                  : 'border-gray-300 bg-white hover:border-gray-400 hover:shadow-md'
-              } ${
-                isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'
-              }`}
-              style={{
-                background: betAmount > 0 
-                  ? `linear-gradient(135deg, ${section.color}22, ${section.color}11)` 
-                  : undefined
-              }}
+              className={`relative p-3 rounded-xl border-2 transition-all duration-300 ${borderClass} ${bgClass} ${shadowClass} ${
+                isDisabled ? 'cursor-not-allowed' : 'hover:scale-105 active:scale-95'
+              } ${isWinningSection ? 'scale-110' : betAmount > 0 ? 'scale-105' : ''}`}
             >
               <div className="text-2xl mb-1">{section.emoji}</div>
               <div className="text-xs font-bold text-gray-800">{section.label}</div>
+              
               {betAmount > 0 && (
-                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                <div className={`absolute -top-1 -right-1 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center ${
+                  betStatus === 'winning' ? 'bg-green-500' :
+                  betStatus === 'losing' ? 'bg-red-500' :
+                  'bg-blue-500'
+                }`}>
                   {betAmount}
                 </div>
+              )}
+              
+              {betStatus === 'winning' && (
+                <div className="absolute -top-2 -left-2 text-green-500 text-lg animate-bounce">
+                  ✅
+                </div>
+              )}
+              
+              {isWinningSection && (
+                <div className="absolute inset-0 rounded-xl bg-yellow-400/20 animate-pulse"></div>
               )}
             </button>
           )
         })}
       </div>
 
+      {showResult && gameResult && (
+        <div className="mb-4 p-3 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl border-2 border-purple-300 shadow-lg">
+          <div className="text-center">
+            <div className="text-lg font-bold text-purple-800 mb-2">
+              🎯 結果: {getWinningSection()?.emoji} {getWinningSection()?.label}
+            </div>
+            {gameResult.winningAmount > 0 ? (
+              <div className="space-y-1">
+                <div className="text-sm text-green-700 font-semibold">
+                  💰 的中ベット: {gameResult.winningAmount}pt → {gameResult.winningAmount * GAME_CONFIG.PAYOUT_MULTIPLIER}pt獲得
+                </div>
+                <div className="text-base text-green-800 font-bold">
+                  📊 総獲得: {gameResult.totalPayout}pt
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-600">
+                😢 今回は外れでした。次回頑張りましょう！
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2 justify-center">
         <button
           onClick={handleClearBets}
-          disabled={isDisabled || totalBetAmount === 0}
+          disabled={isDisabled || totalBetAmount === 0 || showResult}
           className={`px-4 py-1 text-sm rounded-lg font-bold transition-all ${
-            isDisabled || totalBetAmount === 0
+            isDisabled || totalBetAmount === 0 || showResult
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-red-500 text-white hover:bg-red-600 hover:scale-105'
           }`}
         >
-          🗑️ クリア
+          🗑️ {showResult ? '結果表示中...' : 'クリア'}
         </button>
       </div>
 

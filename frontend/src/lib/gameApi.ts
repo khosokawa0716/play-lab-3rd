@@ -1,6 +1,6 @@
 import { apiClient } from './api'
 
-export interface GameResult {
+interface GameResultPayload {
   game_type: string
   score: number
   details?: string
@@ -25,7 +25,7 @@ export interface UserGameStats {
 
 export const gameApi = {
   // ゲーム結果を保存
-  saveGameResult: async (gameResult: GameResult): Promise<GameScore> => {
+  saveGameResult: async (gameResult: GameResultPayload): Promise<GameScore> => {
     const response = await apiClient.post('/api/v1/games/scores', gameResult)
     return response.data
   },

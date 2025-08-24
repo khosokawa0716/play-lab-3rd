@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { RouletteWheel } from '@/components/roulette/RouletteWheel'
 import { GameScore } from '@/components/roulette/GameScore'
-import { BettingPanel } from '@/components/roulette/BettingPanel'
+import { BettingPanel, RouletteBetResult } from '@/components/roulette/BettingPanel'
 import { GAME_CONFIG } from '@/constants/gameConfig'
 import { useAuth } from '@/contexts/AuthContext'
 import { gameApi } from '@/lib/gameApi'
@@ -19,7 +19,8 @@ export default function RoulettePage() {
   const [bets, setBets] = useState<Bets>({})
   const [consecutiveWins, setConsecutiveWins] = useState(0)
   const [lastWinAmount, setLastWinAmount] = useState(0)
-  const [gameStats, setGameStats] = useState<any>(null)
+  const [showResult, setShowResult] = useState(false)
+  const [gameResult, setGameResult] = useState<RouletteBetResult | null>(null)
 
   const handleResult = useCallback(async (result: number) => {
     setLastResult(result)
@@ -31,10 +32,12 @@ export default function RoulettePage() {
     newScore -= totalBetAmount
     
     let netResult = 0
+    let totalPayout = 0
     if (winAmount > 0) {
       const payout = winAmount * GAME_CONFIG.PAYOUT_MULTIPLIER
       newScore += payout
       netResult = payout - totalBetAmount
+      totalPayout = payout
     } else {
       netResult = -totalBetAmount
     }
@@ -48,8 +51,22 @@ export default function RoulettePage() {
     }
     
     setScore(newScore)
-    setBets({})
+    
+    // 結果表示の設定
+    setGameResult({
+      winningSectionId: result,
+      winningAmount: winAmount,
+      totalPayout: totalPayout
+    })
+    setShowResult(true)
     setIsSpinning(false)
+    
+    // 5秒後に結果表示を終了し、ベットをクリア
+    setTimeout(() => {
+      setShowResult(false)
+      setGameResult(null)
+      setBets({})
+    }, 5000)
 
     // ログインユーザーの場合、ゲーム結果をサーバーに保存
     if (isAuthenticated && user) {
@@ -63,7 +80,7 @@ export default function RoulettePage() {
           consecutive_wins: consecutiveWins + (netResult > 0 ? 1 : 0),
         }
 
-        const saveResult = await gameApi.saveGameResult({
+        await gameApi.saveGameResult({
           game_type: 'roulette',
           score: newScore,
           details: JSON.stringify(gameDetails),
@@ -168,6 +185,8 @@ export default function RoulettePage() {
               onBetChange={updateBet}
               totalScore={score}
               isDisabled={isSpinning}
+              gameResult={gameResult}
+              showResult={showResult}
             />
           </div>
         </div>
