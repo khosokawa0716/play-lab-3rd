@@ -249,14 +249,16 @@ export default function RoulettePage() {
 
         <div className="space-y-3 mt-4">
           <div className="flex justify-center space-x-4">
-            <a href="/">
+            <Link href="/">
               <button className="bg-white text-game-primary font-bold py-2 px-6 rounded-lg hover:bg-gray-100 transition-colors">
                 ← ホームに戻る
               </button>
-            </a>
-            <button className="bg-white text-game-secondary font-bold py-2 px-6 rounded-lg hover:bg-gray-100 transition-colors">
-              ルールを見る
-            </button>
+            </Link>
+            <Link href="/rules">
+              <button className="bg-white text-game-secondary font-bold py-2 px-6 rounded-lg hover:bg-gray-100 transition-colors">
+                ルールを見る
+              </button>
+            </Link>
           </div>
         </div>
       </div>
