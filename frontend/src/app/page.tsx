@@ -17,7 +17,7 @@ export default function Home() {
           <div className="card">
             <h2 className="text-2xl font-bold text-game-primary mb-4">🎰 ルーレットゲーム</h2>
             <p className="text-gray-600 mb-4">
-              ランダムに変化する図柄を予測して当てる、直感的なタイミングゲーム
+              図柄を予測してスコアを増やそう！
             </p>
             <a href="/roulette" className="block">
               <button className="btn-primary w-full">

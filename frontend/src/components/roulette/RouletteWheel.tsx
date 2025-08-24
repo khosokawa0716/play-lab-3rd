@@ -82,12 +82,13 @@ export function RouletteWheel({ isSpinning, onResult, onSpin, totalBetAmount }: 
           width="320"
           height="320"
           viewBox="0 0 320 320"
-          className={`transform transition-transform duration-3000 ease-out ${
-            isSpinning ? 'animate-spin-slow' : ''
-          }`}
+          className="transform"
           style={{
             transform: `rotate(${rotation}deg)`,
-            transformOrigin: '160px 160px'
+            transformOrigin: '160px 160px',
+            transition: isSpinning 
+              ? `transform ${GAME_CONFIG.SPIN_DURATION}ms cubic-bezier(0.15, 0.75, 0.35, 1)`
+              : 'none'
           }}
         >
           {GAME_CONFIG.WHEEL_SECTIONS.map((section, index) => {
@@ -144,8 +145,11 @@ export function RouletteWheel({ isSpinning, onResult, onSpin, totalBetAmount }: 
           />
         </svg>
         
-        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2">
-          <div className="w-0 h-0 border-l-4 border-r-4 border-b-8 border-l-transparent border-r-transparent border-b-white drop-shadow-lg"></div>
+        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-3 z-10">
+          <div className="relative">
+            <div className="w-0 h-0 border-l-6 border-r-6 border-b-12 border-l-transparent border-r-transparent border-b-red-500 drop-shadow-2xl animate-pulse"></div>
+            <div className="absolute top-3 left-1/2 transform -translate-x-1/2 w-3 h-6 bg-red-500 rounded-full shadow-lg"></div>
+          </div>
         </div>
       </div>
       

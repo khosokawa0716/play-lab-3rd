@@ -7,7 +7,7 @@ export const GAME_CONFIG = {
   BET_AMOUNTS: [10, 50, 100, 500],
   
   // アニメーション設定
-  SPIN_DURATION: 3500, // ms
+  SPIN_DURATION: 5500, // ms
   ANIMATION_DELAY: 1000, // ms
   SPIN_ROTATIONS: 5, // 回転数
   
