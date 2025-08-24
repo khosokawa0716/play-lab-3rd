@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { RouletteWheel } from '@/components/roulette/RouletteWheel'
 import { GameScore } from '@/components/roulette/GameScore'
@@ -9,7 +9,74 @@ import { GAME_CONFIG } from '@/constants/gameConfig'
 import { useAuth } from '@/contexts/AuthContext'
 import { gameApi } from '@/lib/gameApi'
 
+const GAME_TYPE = 'roulette'
 type Bets = { [key: number]: number }
+
+function calculateResult(
+  result: number,
+  bets: Bets,
+  score: number,
+  payoutMultiplier: number
+) {
+  const winAmount = bets[result] || 0
+  const totalBetAmount = Object.values(bets).reduce((sum, bet) => sum + bet, 0)
+  let newScore = score - totalBetAmount
+  let netResult = -totalBetAmount
+  let totalPayout = 0
+
+  if (winAmount > 0) {
+    totalPayout = winAmount * payoutMultiplier
+    newScore += totalPayout
+    netResult = totalPayout - totalBetAmount
+  }
+
+  return { newScore, winAmount, totalBetAmount, netResult, totalPayout }
+}
+
+async function saveGameResultIfNeeded({
+  isAuthenticated,
+  user,
+  result,
+  bets,
+  totalBetAmount,
+  winAmount,
+  payoutMultiplier,
+  netResult,
+  consecutiveWins,
+  newScore,
+}: {
+  isAuthenticated: boolean
+  user: any
+  result: number
+  bets: Bets
+  totalBetAmount: number
+  winAmount: number
+  payoutMultiplier: number
+  netResult: number
+  consecutiveWins: number
+  newScore: number
+}) {
+  if (!isAuthenticated || !user) return
+
+  const gameDetails = {
+    result_number: result,
+    bets,
+    total_bet: totalBetAmount,
+    payout: winAmount > 0 ? winAmount * payoutMultiplier : 0,
+    net_result: netResult,
+    consecutive_wins: consecutiveWins + (netResult > 0 ? 1 : 0),
+  }
+
+  try {
+    await gameApi.saveGameResult({
+      game_type: GAME_TYPE,
+      score: newScore,
+      details: JSON.stringify(gameDetails),
+    })
+  } catch (error) {
+    console.error('Failed to save game result:', error)
+  }
+}
 
 export default function RoulettePage() {
   const { user, isAuthenticated, isLoading } = useAuth()
@@ -24,72 +91,45 @@ export default function RoulettePage() {
 
   const handleResult = useCallback(async (result: number) => {
     setLastResult(result)
-    
-    let newScore = score
-    const winAmount = bets[result] || 0
-    const totalBetAmount = Object.values(bets).reduce((sum, bet) => sum + bet, 0)
-    
-    newScore -= totalBetAmount
-    
-    let netResult = 0
-    let totalPayout = 0
-    if (winAmount > 0) {
-      const payout = winAmount * GAME_CONFIG.PAYOUT_MULTIPLIER
-      newScore += payout
-      netResult = payout - totalBetAmount
-      totalPayout = payout
-    } else {
-      netResult = -totalBetAmount
-    }
-    
+
+    const {
+      newScore,
+      winAmount,
+      totalBetAmount,
+      netResult,
+      totalPayout,
+    } = calculateResult(result, bets, score, GAME_CONFIG.PAYOUT_MULTIPLIER)
+
     setLastWinAmount(netResult)
-    
-    if (netResult > 0) {
-      setConsecutiveWins(prev => prev + 1)
-    } else {
-      setConsecutiveWins(0)
-    }
-    
+    setConsecutiveWins(prev => (netResult > 0 ? prev + 1 : 0))
     setScore(newScore)
-    
-    // 結果表示の設定
+
     setGameResult({
       winningSectionId: result,
       winningAmount: winAmount,
-      totalPayout: totalPayout
+      totalPayout: totalPayout,
     })
     setShowResult(true)
     setIsSpinning(false)
-    
-    // 5秒後に結果表示を終了し、ベットをクリア
+
     setTimeout(() => {
       setShowResult(false)
       setGameResult(null)
       setBets({})
     }, 5000)
 
-    // ログインユーザーの場合、ゲーム結果をサーバーに保存
-    if (isAuthenticated && user) {
-      try {
-        const gameDetails = {
-          result_number: result,
-          bets: bets,
-          total_bet: totalBetAmount,
-          payout: winAmount > 0 ? winAmount * GAME_CONFIG.PAYOUT_MULTIPLIER : 0,
-          net_result: netResult,
-          consecutive_wins: consecutiveWins + (netResult > 0 ? 1 : 0),
-        }
-
-        await gameApi.saveGameResult({
-          game_type: 'roulette',
-          score: newScore,
-          details: JSON.stringify(gameDetails),
-        })
-      } catch (error) {
-        console.error('Failed to save game result:', error)
-        // エラーが発生してもゲームは続行
-      }
-    }
+    await saveGameResultIfNeeded({
+      isAuthenticated,
+      user,
+      result,
+      bets,
+      totalBetAmount,
+      winAmount,
+      payoutMultiplier: GAME_CONFIG.PAYOUT_MULTIPLIER,
+      netResult,
+      consecutiveWins,
+      newScore,
+    })
   }, [score, bets, consecutiveWins, isAuthenticated, user])
 
   const handleSpin = () => {
@@ -112,6 +152,22 @@ export default function RoulettePage() {
       [sectionId]: amount
     }))
   }
+
+  // スコア初期化: 認証済みユーザーなら最新スコアを取得
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      gameApi.getUserGameHistory(GAME_TYPE, 1)
+        .then(history => {
+          if (history.length > 0) {
+            setScore(history[0].score)
+          }
+        })
+        .catch(err => {
+          // エラー時は初期値のまま
+          console.error('最新スコア取得失敗:', err)
+        })
+    }
+  }, [isAuthenticated, user])
 
   // ローディング中
   if (isLoading) {
@@ -161,16 +217,16 @@ export default function RoulettePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 p-2">
       <div className="container mx-auto max-w-6xl">
-        <GameScore 
-          score={score} 
-          lastResult={lastResult} 
+        <GameScore
+          score={score}
+          lastResult={lastResult}
           consecutiveWins={consecutiveWins}
           lastWinAmount={lastWinAmount}
         />
-        
+
         <div className="grid lg:grid-cols-2 gap-4 items-start">
           <div className="flex justify-center">
-            <RouletteWheel 
+            <RouletteWheel
               isSpinning={isSpinning}
               onResult={handleResult}
               onSpin={handleSpin}
@@ -190,7 +246,7 @@ export default function RoulettePage() {
             />
           </div>
         </div>
-        
+
         <div className="space-y-3 mt-4">
           <div className="flex justify-center space-x-4">
             <a href="/">
