@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -149,9 +150,19 @@ async def get_user_game_stats(
             average_score=0.0,
             recent_games=[]
         )
-    
-    total_score = query.with_entities(func.sum(GameScore.score)).scalar() or 0
-    best_score = query.with_entities(func.max(GameScore.score)).scalar() or 0
+    # detailsからnet_resultの和を計算
+    all_details = query.with_entities(GameScore.details).all()
+    net_results = []
+    for (details,) in all_details:
+        try:
+            if details:
+                data = json.loads(details)
+                net_results.append(data.get("net_result", 0))
+        except Exception as e:
+            print(f"details parse error: {details}, error: {e}")  # デバッグ用
+            net_results.append(0)
+    total_score = sum(net_results)
+    best_score = max(net_results) if net_results else 0
     average_score = total_score / total_games if total_games > 0 else 0.0
     
     # 最近のゲーム履歴
