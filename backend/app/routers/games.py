@@ -39,7 +39,7 @@ class UserGameStats(BaseModel):
     recent_games: List[GameScoreResponse]
 
 @router.post("/roulette/spin", response_model=RouletteResult)
-async def spin_roulette(current_user: User = Depends(), db: Session = Depends(get_db)):
+async def spin_roulette(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # ルーレットゲームロジック
     symbols = ["🍎", "🍊", "🍋", "🍇", "🍓", "🥝"]
     result_symbol = random.choice(symbols)
@@ -66,7 +66,7 @@ async def spin_roulette(current_user: User = Depends(), db: Session = Depends(ge
     )
 
 @router.get("/scores", response_model=List[GameScoreResponse])
-async def get_user_scores(current_user: User = Depends(), db: Session = Depends(get_db)):
+async def get_user_scores(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     scores = db.query(GameScore).filter(
         GameScore.user_id == current_user.id
     ).order_by(GameScore.played_at.desc()).limit(20).all()
@@ -82,8 +82,7 @@ async def get_user_scores(current_user: User = Depends(), db: Session = Depends(
     ]
 
 @router.post("/daily-bonus")
-async def claim_daily_bonus(current_user: User = Depends(), db: Session = Depends(get_db)):
-    print(f"current_user: {current_user}") # デバッグ用ログ
+async def claim_daily_bonus(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     today_start = datetime.combine(date.today(), datetime.min.time())
     existing_bonus = db.query(DailyBonus).filter(
         DailyBonus.user_id == current_user.id,

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.user import User
+from app.routers.auth import get_current_user
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -12,7 +13,7 @@ class UserProfile(BaseModel):
     nickname: str
 
 @router.get("/profile", response_model=UserProfile)
-async def get_user_profile(current_user: User = Depends(), db: Session = Depends(get_db)):
+async def get_user_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return UserProfile(
         id=current_user.id,
         email=current_user.email,
