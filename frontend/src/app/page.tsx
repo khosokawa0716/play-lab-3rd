@@ -2,9 +2,34 @@
 
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
+import { useState } from 'react'
+import { gameApi } from '@/lib/gameApi'
 
 export default function Home() {
   const { user, isAuthenticated, logout, isLoading } = useAuth()
+  const [receivedBonus, setReceivedBonus] = useState(false);
+  const handleDailyBonus = async () => {
+    if (!isAuthenticated || !user) return
+    try {
+      const bonus = await gameApi.getUserGameBonus()
+      alert(`ボーナスを受け取りました: ${bonus}ポイント`)
+      setReceivedBonus(true);
+    } catch (error) {
+    // Narrow the type of 'error'
+    if (error instanceof Error) {
+      // Check if 'error' has a 'response' property
+      if ((error as any).response && (error as any).response.status === 400) {
+        alert("本日のボーナスは既に受け取っています。");
+      setReceivedBonus(true);
+      } else {
+        console.error("Error fetching daily bonus:", error);
+      }
+    } else {
+      console.error("An unknown error occurred:", error);
+    }
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="text-center">
@@ -31,7 +56,7 @@ export default function Home() {
             <p className="text-gray-600 mb-4">
               毎日ログインして特別な報酬をゲットしよう！
             </p>
-            <button className="btn-secondary w-full">
+            <button className="btn-secondary w-full" onClick={handleDailyBonus} disabled={receivedBonus}>
               ボーナスを受け取る
             </button>
           </div>

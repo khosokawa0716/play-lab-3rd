@@ -46,4 +46,10 @@ export const gameApi = {
     const response = await apiClient.get('/api/v1/games/history', { params })
     return response.data
   },
+
+  // ユーザーのゲームボーナスを取得
+  getUserGameBonus: async (): Promise<number> => {
+    const response = await apiClient.post('/api/v1/games/daily-bonus');
+    return response.data.amount;
+  },
 }

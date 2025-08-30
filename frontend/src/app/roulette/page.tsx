@@ -156,7 +156,7 @@ export default function RoulettePage() {
   // スコア初期化: 認証済みユーザーなら最新スコアを取得
   useEffect(() => {
     if (isAuthenticated && user) {
-      gameApi.getUserGameHistory(GAME_TYPE, 1)
+      gameApi.getUserGameHistory(undefined,1)
         .then(history => {
           if (history.length > 0) {
             setScore(history[0].score)

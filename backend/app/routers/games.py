@@ -83,23 +83,44 @@ async def get_user_scores(current_user: User = Depends(), db: Session = Depends(
 
 @router.post("/daily-bonus")
 async def claim_daily_bonus(current_user: User = Depends(), db: Session = Depends(get_db)):
-    today = date.today()
+    print(f"current_user: {current_user}") # デバッグ用ログ
+    today_start = datetime.combine(date.today(), datetime.min.time())
     existing_bonus = db.query(DailyBonus).filter(
         DailyBonus.user_id == current_user.id,
-        DailyBonus.bonus_date >= today
+        DailyBonus.bonus_date >= today_start
     ).first()
     
     if existing_bonus:
         raise HTTPException(status_code=400, detail="Daily bonus already claimed")
-    
+
+    bonus_amount = 100
     bonus = DailyBonus(
         user_id=current_user.id,
-        bonus_amount=100
+        bonus_date=today_start,
+        bonus_amount=bonus_amount
     )
     db.add(bonus)
     db.commit()
-    
-    return {"message": "Daily bonus claimed!", "amount": 100}
+
+    # 最新のスコアを更新
+    last_score = db.query(GameScore).filter(
+        GameScore.user_id == current_user.id
+    ).order_by(GameScore.played_at.desc()).first()
+    current_score = last_score.score if last_score else 0
+
+    # GameScoreにボーナス分を加算した新レコードを追加
+    new_score = current_score + bonus_amount
+    new_score_record = GameScore(
+        user_id=current_user.id,
+        game_type="daily_bonus",
+        score=new_score,
+        details=json.dumps({"bonus_amount": bonus_amount, "reason": "daily_bonus"})
+    )
+
+    db.add(new_score_record)
+    db.commit()
+
+    return {"message": "Daily bonus claimed!", "amount": bonus_amount}
 
 # フロントエンドが期待するAPIエンドポイント
 @router.post("/scores", response_model=GameScoreResponse)
